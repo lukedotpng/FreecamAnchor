@@ -1,5 +1,5 @@
 {
-    "name": "mymod",
+    "name": "freecamanchor",
     "version": "1.0.0",
     "dependencies": [
         "directx-headers"
