@@ -1,7 +1,7 @@
 # <img src="./Anchor_wText.png" height="100">
 
 ![](hitman_anchor.gif)
-## This mod is an alternative to the default ZHM freecam mod, and allows you to anchor the camera to any entity!
+## This mod allows you to anchor the camera to any entity!
 - A fork of the default [freecam mod](https://github.com/OrfeasZ/ZHMModSDK/tree/master/Mods/FreeCam) by [Orfeasz](https://github.com/OrfeasZ)
 - Icon and gif provided by [ThatObserver](https://www.twitch.tv/thatobserver) :D
 - Project made using the ZHM Mod SDK and the [ZHM Mod Generator](https://zhmmod.nofate.me/)
