@@ -7,6 +7,7 @@
 #include <Glacier/ZEntity.h>
 #include <Glacier/ZInput.h>
 #include <Glacier/ZCollision.h>
+#include <Glacier/ZItem.h>
 
 class FreecamAnchor : public IPluginInterface
 {
@@ -37,7 +38,6 @@ private:
     volatile bool m_ShouldToggle;
     volatile bool m_FreeCamFrozen;
     ZEntityRef m_OriginalCam;
-    ZEntityRef m_AnchoredItem;
     ZSpatialEntity* m_AnchoredItemSpatial;
     SVector3 m_AnchorOffset;
     ZInputAction m_ToggleFreeCamAction;
@@ -60,6 +60,7 @@ private:
     bool m_NeedsToMove;
     bool m_DebugMenuActive;
     bool m_HasToggledFreecamBefore;
+    bool m_isTaser;
     std::unordered_map<std::string, std::string> m_PcControls;
     std::unordered_map<std::string, std::string> m_ControllerControls;
 };

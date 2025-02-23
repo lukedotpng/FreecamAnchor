@@ -1,3 +1,5 @@
+#define FMT_UNICODE 0
+
 #include "FreecamAnchor.h"
 
 #include <random>
@@ -8,7 +10,7 @@
 
 #include <Glacier/ZActor.h>
 #include <Glacier/SGameUpdateEvent.h>
-#include <Glacier/ZObject.h>
+#include <Glacier/ZAction.h>
 #include <Glacier/ZCameraEntity.h>
 #include <Glacier/ZApplicationEngineWin32.h>
 #include <Glacier/ZEngineAppCommon.h>
@@ -28,6 +30,9 @@ FreecamAnchor::FreecamAnchor() :
 	m_FreeCamFrozen(false),
 	m_ControlsVisible(false),
 	m_DebugMenuActive(false),
+	m_NeedsToMove(false),
+	m_isTaser(false),
+	m_AnchoredItemSpatial(nullptr),
 	m_ToggleFreeCamAction("ToggleFreeCamera"),
     m_FreezeFreeCamActionGc("ActivateGameControl0"),
     m_FreezeFreeCamActionKb("KBMInspectNode"),
@@ -78,8 +83,7 @@ FreecamAnchor::~FreecamAnchor()
         s_RenderDest.m_pInterfaceRef->SetSource(&m_OriginalCam);
 
         // Enable Hitman input.
-        TEntityRef<ZHitman5> s_LocalHitman;
-        Functions::ZPlayerRegistry_GetLocalPlayer->Call(Globals::PlayerRegistry, &s_LocalHitman);
+        TEntityRef<ZHitman5> s_LocalHitman = SDK()->GetLocalPlayer();
 
         if (s_LocalHitman)
         {
@@ -131,19 +135,6 @@ void FreecamAnchor::OnEngineInitialized()
 	}
 }
 
-SVector3 CrossProduct(SVector3 a, SVector3 b) {
-	SVector3 crossProduct;
-	crossProduct.x = (a.y * b.z) - (a.z * b.y);
-	crossProduct.y = (a.x * b.z) - (a.z * b.x);
-	crossProduct.z = (a.x * b.y) - (a.y * b.x);
-	return crossProduct;
-}
-
-SVector3 Normalize(SVector3 vec) {
-	SVector3 normalVec(vec.x / vec.Length(), vec.y / vec.Length(), vec.z / vec.Length());
-	return normalVec;
-}
-
 void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
 {
     if (!*Globals::ApplicationEngineWin32)
@@ -180,17 +171,15 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
     // While freecam is active, only enable hitman input when the "freeze camera" button is pressed.
     if (m_FreeCamActive)
     {
-        if (Functions::ZInputAction_Digital->Call(&m_FreezeFreeCamActionKb, -1))
+	    if (Functions::ZInputAction_Digital->Call(&m_FreezeFreeCamActionKb, -1))
             m_FreeCamFrozen = !m_FreeCamFrozen;
 
-        const bool s_FreezeFreeCam = Functions::ZInputAction_Digital->Call(&m_FreezeFreeCamActionGc, -1) || m_FreeCamFrozen;
+	    const bool s_FreezeFreeCam = Functions::ZInputAction_Digital->Call(&m_FreezeFreeCamActionGc, -1) || m_FreeCamFrozen;
 
-    	(*Globals::ApplicationEngineWin32)->m_pEngineAppCommon.m_pFreeCameraControl01.m_pInterfaceRef->m_bFreezeCamera = s_FreezeFreeCam;
+	    (*Globals::ApplicationEngineWin32)->m_pEngineAppCommon.m_pFreeCameraControl01.m_pInterfaceRef->m_bFreezeCamera = s_FreezeFreeCam;
 
-        TEntityRef<ZHitman5> s_LocalHitman;
-        Functions::ZPlayerRegistry_GetLocalPlayer->Call(Globals::PlayerRegistry, &s_LocalHitman);
-
-        if (s_LocalHitman)
+	    TEntityRef<ZHitman5> s_LocalHitman = SDK()->GetLocalPlayer();
+	    if (s_LocalHitman)
         {
             auto* s_InputControl = Functions::ZHM5InputManager_GetInputControlForLocalPlayer->Call(Globals::InputManager);
 
@@ -198,7 +187,7 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
                 s_InputControl->m_bActive = s_FreezeFreeCam;
         }
 
-    	if(m_NeedsToMove == true) {
+    	if(m_NeedsToMove && m_AnchoredItemSpatial) {
     		auto s_Camera = (*Globals::ApplicationEngineWin32)->m_pEngineAppCommon.m_pFreeCamera01;
     		SMatrix43 updatedCamMatrix = s_Camera.m_pInterfaceRef->m_mTransform;
     		updatedCamMatrix.Trans = m_AnchoredItemSpatial->m_mTransform.Trans;
@@ -210,23 +199,23 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
     		s_Camera.m_pInterfaceRef->SetWorldMatrix(updatedCamMatrix);
     	}
 
-    	if (Functions::ZInputAction_Digital->Call(&m_Unanchor, -1)) {
+	    if (Functions::ZInputAction_Digital->Call(&m_Unanchor, -1)) {
     		m_NeedsToMove = false;
     	}
 
-    	if (Functions::ZInputAction_Digital->Call(&m_AnchoredObjectAction, -1)) {
+	    if (Functions::ZInputAction_Digital->Call(&m_AnchoredObjectAction, -1)) {
     		Logger::Debug("Following Object :D");
     		AnchorToObject();
     	}
 
-		if(Functions::ZInputAction_Digital->Call(&m_ResetOffset, -1)) {
+	    if(Functions::ZInputAction_Digital->Call(&m_ResetOffset, -1)) {
 			Logger::Debug("OFFSET RESET");
 			m_AnchorOffset.x = 0;
 			m_AnchorOffset.y = 0;
 			m_AnchorOffset.z = 0;
 		}
 
-    	if(Functions::ZInputAction_Digital->Call(&m_DecreaseXOffset, -1)) {
+	    if(Functions::ZInputAction_Digital->Call(&m_DecreaseXOffset, -1)) {
     		Logger::Debug("X OFFSET DECREASED");
     		m_AnchorOffset.x -= m_OffsetStep;
     	}
@@ -319,8 +308,7 @@ void FreecamAnchor::DisableFreecam()
     s_RenderDest.m_pInterfaceRef->SetSource(&m_OriginalCam);
 
     // Enable Hitman input.
-    TEntityRef<ZHitman5> s_LocalHitman;
-    Functions::ZPlayerRegistry_GetLocalPlayer->Call(Globals::PlayerRegistry, &s_LocalHitman);
+    TEntityRef<ZHitman5> s_LocalHitman = SDK()->GetLocalPlayer();
 
     if (s_LocalHitman)
     {
@@ -343,10 +331,6 @@ void FreecamAnchor::AnchorToObject()
 
 	if (GetFreeCameraRayCastClosestHitQueryOutput(s_RayOutput) && s_RayOutput.m_BlockingEntity)
 	{
-		TEntityRef<ZHitman5> s_LocalHitman;
-
-		Functions::ZPlayerRegistry_GetLocalPlayer->Call(Globals::PlayerRegistry, &s_LocalHitman);
-
 		auto* s_BlockingEntitySpatial = s_RayOutput.m_BlockingEntity.QueryInterface<ZSpatialEntity>();
 
 		if (s_BlockingEntitySpatial) {
