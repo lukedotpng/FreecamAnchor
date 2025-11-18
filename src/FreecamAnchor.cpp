@@ -143,7 +143,7 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
     if (!(*Globals::ApplicationEngineWin32)->m_pEngineAppCommon.m_pFreeCamera01.m_pInterfaceRef)
     {
         Logger::Debug("Creating free camera.");
-        Functions::ZEngineAppCommon_CreateFreeCamera->Call(&(*Globals::ApplicationEngineWin32)->m_pEngineAppCommon);
+        Functions::ZEngineAppCommon_CreateFreeCameraAndControl->Call(&(*Globals::ApplicationEngineWin32)->m_pEngineAppCommon);
 
         // If freecam was active we need to toggle.
         // This can happen after level restarts / changes.
@@ -204,7 +204,7 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
     	}
 
 	    if (Functions::ZInputAction_Digital->Call(&m_AnchoredObjectAction, -1)) {
-    		Logger::Debug("Following Object :D");
+    		Logger::Debug("Anchored To Object :D");
     		AnchorToObject();
     	}
 
@@ -260,12 +260,12 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
 void FreecamAnchor::OnDrawMenu()
 {
     bool s_FreeCamActive = m_FreeCamActive;
-    if (ImGui::Checkbox(ICON_MD_PHOTO_CAMERA " FREECAM FOLLOW", &s_FreeCamActive))
+    if (ImGui::Checkbox(ICON_MD_PHOTO_CAMERA " FREECAM ANCHOR", &s_FreeCamActive))
     {
         ToggleFreecam();
     }
 
-    if (ImGui::Button(ICON_MD_SPORTS_ESPORTS " FREECAM FOLLOW CONTROLS")) {
+    if (ImGui::Button(ICON_MD_SPORTS_ESPORTS " FREECAM ANCHOR CONTROLS")) {
 	    m_ControlsVisible = !m_ControlsVisible;
     }
 
@@ -429,7 +429,7 @@ DEFINE_PLUGIN_DETOUR(FreecamAnchor, bool, ZInputAction_Digital, ZInputAction* th
     return HookResult<bool>(HookAction::Continue());
 }
 
-DEFINE_PLUGIN_DETOUR(FreecamAnchor, void, OnLoadScene, ZEntitySceneContext* th, ZSceneData&)
+DEFINE_PLUGIN_DETOUR(FreecamAnchor, void, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters&)
 {
     if (m_FreeCamActive)
         DisableFreecam();

@@ -30,7 +30,7 @@ private:
 
 private:
     DECLARE_PLUGIN_DETOUR(FreecamAnchor, bool, ZInputAction_Digital, ZInputAction* th, int a2);
-    DECLARE_PLUGIN_DETOUR(FreecamAnchor, void, OnLoadScene, ZEntitySceneContext*, ZSceneData&);
+    DECLARE_PLUGIN_DETOUR(FreecamAnchor, void, OnLoadScene, ZEntitySceneContext*, SSceneInitParameters&);
     DECLARE_PLUGIN_DETOUR(FreecamAnchor, void, OnClearScene, ZEntitySceneContext*, bool);
 
 private:
