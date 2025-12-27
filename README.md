@@ -31,8 +31,8 @@
 ## Installation Instructions
 
 1. Download the latest version of [ZHMModSDK](https://github.com/OrfeasZ/ZHMModSDK) and install it.
-2. Download the latest version of `EntityPathTrace` and copy it to the ZHMModSDK `mods` folder (e.g. `C:\Games\HITMAN 3\Retail\mods`).
-3. Run the game and once in the main menu, press the `~` key (`^` on QWERTZ layouts) and enable `EntityPathTrace` from the menu at the top of the screen.
+2. Download the latest version of `FreecamAnchor` and copy it to the ZHMModSDK `mods` folder (e.g. `C:\Games\HITMAN 3\Retail\mods`).
+3. Run the game and once in the main menu, press the `~` key (`^` on QWERTZ layouts) and enable `FreecamAnchor` from the menu at the top of the screen.
 4. Enjoy!
 
 ## Build It Yourself!
