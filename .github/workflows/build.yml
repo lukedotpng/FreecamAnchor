@@ -19,7 +19,7 @@ jobs:
       uses: lukka/get-cmake@latest
 
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -53,15 +53,15 @@ jobs:
         Copy-Item LICENSE -Destination _dist-release/LICENSE
 
     - name: Archive debug
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: MyMod-Debug
+        name: FreecamAnchor-Debug
         path: _dist-debug/*
 
     - name: Archive release
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: MyMod-Release
+        name: FreecamAnchor-Release
         path: _dist-release/*
 
   upload_release:
@@ -72,23 +72,23 @@ jobs:
 
     steps:
     - name: Download debug artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
-        name: MyMod-Debug
-        path: MyMod-Debug
+        name: FreecamAnchor-Debug
+        path: FreecamAnchor-Debug
 
     - name: Download release artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
-        name: MyMod-Release
-        path: MyMod-Release
+        name: FreecamAnchor-Release
+        path: FreecamAnchor-Release
 
     - name: Archive artifact files
       run: |
-        cd MyMod-Debug
-        zip -r MyMod-Debug.zip *
-        cd ../MyMod-Release
-        zip -r MyMod-Release.zip *
+        cd FreecamAnchor-Debug
+        zip -r FreecamAnchor-Debug.zip *
+        cd ../FreecamAnchor-Release
+        zip -r FreecamAnchor-Release.zip *
         
     - name: Get release
       id: get_release
@@ -102,8 +102,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: MyMod-Debug/MyMod-Debug.zip
-        asset_name: MyMod-Debug.zip
+        asset_path: FreecamAnchor-Debug/FreecamAnchor-Debug.zip
+        asset_name: FreecamAnchor-Debug.zip
         asset_content_type: application/zip
 
     - name: Upload release assets
@@ -112,6 +112,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: MyMod-Release/MyMod-Release.zip
-        asset_name: MyMod-Release.zip
+        asset_path: FreecamAnchor-Release/FreecamAnchor-Release.zip
+        asset_name: FreecamAnchor-Release.zip
         asset_content_type: application/zip
