@@ -29,6 +29,7 @@ FreecamAnchor::FreecamAnchor() :
 	m_ShouldToggle(false),
 	m_FreeCamFrozen(false),
 	m_ControlsVisible(false),
+	m_SettingsVisible(false),
 	m_DebugMenuActive(false),
 	m_NeedsToMove(false),
 	m_isTaser(false),
@@ -196,7 +197,7 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
     		updatedCamMatrix.Trans.y += m_AnchorOffset.y;
     		updatedCamMatrix.Trans.z += m_AnchorOffset.z;
 
-    		s_Camera.m_pInterfaceRef->SetWorldMatrix(updatedCamMatrix);
+    		s_Camera.m_pInterfaceRef->SetObjectToWorldMatrixFromEditor(updatedCamMatrix);
     	}
 
 	    if (Functions::ZInputAction_Digital->Call(&m_Unanchor, -1)) {
@@ -259,20 +260,83 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
 
 void FreecamAnchor::OnDrawMenu()
 {
-    bool s_FreeCamActive = m_FreeCamActive;
-    if (ImGui::Checkbox(ICON_MD_PHOTO_CAMERA " FREECAM ANCHOR", &s_FreeCamActive))
-    {
-        ToggleFreecam();
-    }
+	if (ImGui::Button(ICON_MD_PHOTO_CAMERA " FREECAM ANCHOR")) {
+		m_SettingsVisible = !m_SettingsVisible;
+	}
+}
 
-    if (ImGui::Button(ICON_MD_SPORTS_ESPORTS " FREECAM ANCHOR CONTROLS")) {
-	    m_ControlsVisible = !m_ControlsVisible;
-    }
+void FreecamAnchor::OnDrawUI(bool p_HasFocus)
+{
+	if (m_SettingsVisible) {
+		const auto s_Center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(s_Center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-	if(ImGui::BeginMenu("Freecam Settings")) {
-		ImGui::SliderFloat("Offset Step", &m_OffsetStep, .05f, 2.0f, "%.2f", ImGuiSliderFlags_None);
+		ImGui::PushFont(SDK()->GetImGuiBlackFont());
+		const auto s_IsWindowExpanded = ImGui::Begin(ICON_MD_PHOTO_CAMERA " Freecam Anchor", &m_SettingsVisible);
+		ImGui::PushFont(SDK()->GetImGuiRegularFont());
 
-		ImGui::EndMenu();
+		if (s_IsWindowExpanded)
+		{
+			bool s_FreeCamActive = m_FreeCamActive;
+			if (ImGui::Checkbox( " Enable Freecam", &s_FreeCamActive))
+			{
+				ToggleFreecam();
+			}
+
+			ImGui::SliderFloat("Offset Step", &m_OffsetStep, .05f, 2.0f, "%.2f", ImGuiSliderFlags_None);
+
+			if (ImGui::Button(ICON_MD_SPORTS_ESPORTS " Show Freecam Anchor controls")) {
+				m_ControlsVisible = !m_ControlsVisible;
+			}
+		}
+
+		ImGui::PopFont();
+		ImGui::End();
+		ImGui::PopFont();
+	}
+
+	if (m_ControlsVisible)
+	{
+		ImGui::PushFont(SDK()->GetImGuiBlackFont());
+		const auto s_ControlsExpanded = ImGui::Begin(ICON_MD_PHOTO_CAMERA " Freecam Anchor Controls", &m_ControlsVisible);
+		ImGui::PushFont(SDK()->GetImGuiRegularFont());
+
+		if (s_ControlsExpanded)
+		{
+			ImGui::TextUnformatted("PC Controls");
+
+			ImGui::BeginTable("FreeCamControlsPc", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit);
+
+			for (auto& [s_Key, s_Description]: m_PcControls)
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(s_Key.c_str());
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(s_Description.c_str());
+			}
+
+
+			ImGui::EndTable();
+
+			ImGui::TextUnformatted("Controller Controls");
+
+			ImGui::BeginTable("FreeCamControlsController", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit);
+
+			for (auto& [s_Key, s_Description]: m_ControllerControls) {
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(s_Key.c_str());
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(s_Description.c_str());
+			}
+
+			ImGui::EndTable();
+		}
+
+		ImGui::PopFont();
+		ImGui::End();
+		ImGui::PopFont();
 	}
 }
 
@@ -293,11 +357,11 @@ void FreecamAnchor::EnableFreecam()
     m_OriginalCam = *s_RenderDest.m_pInterfaceRef->GetSource();
 
     const auto s_CurrentCamera = Functions::GetCurrentCamera->Call();
-    s_Camera.m_pInterfaceRef->SetWorldMatrix(s_CurrentCamera->GetWorldMatrix());
+    s_Camera.m_pInterfaceRef->SetObjectToWorldMatrixFromEditor(s_CurrentCamera->GetObjectToWorldMatrix());
 
     Logger::Debug("Camera trans: {}", fmt::ptr(&s_Camera.m_pInterfaceRef->m_mTransform.Trans));
 
-    s_RenderDest.m_pInterfaceRef->SetSource(&s_Camera.m_ref);
+    s_RenderDest.m_pInterfaceRef->SetSource(&s_Camera.m_entityRef);
 }
 
 void FreecamAnchor::DisableFreecam()
@@ -344,7 +408,7 @@ void FreecamAnchor::AnchorToObject()
 bool FreecamAnchor::GetFreeCameraRayCastClosestHitQueryOutput(ZRayQueryOutput& p_RayOutput)
 {
 	auto s_Camera = (*Globals::ApplicationEngineWin32)->m_pEngineAppCommon.m_pFreeCamera01;
-	SMatrix s_WorldMatrix = s_Camera.m_pInterfaceRef->GetWorldMatrix();
+	SMatrix s_WorldMatrix = s_Camera.m_pInterfaceRef->GetObjectToWorldMatrix();
 	float4 s_InvertedDirection = float4(-s_WorldMatrix.ZAxis.x, -s_WorldMatrix.ZAxis.y, -s_WorldMatrix.ZAxis.z, -s_WorldMatrix.ZAxis.w);
 	float4 s_From = s_WorldMatrix.Trans;
 	float4 s_To = s_WorldMatrix.Trans + s_InvertedDirection * 500.f;
@@ -371,53 +435,6 @@ bool FreecamAnchor::GetFreeCameraRayCastClosestHitQueryOutput(ZRayQueryOutput& p
 	return true;
 }
 
-void FreecamAnchor::OnDrawUI(bool p_HasFocus)
-{
-    if (m_ControlsVisible)
-    {
-        ImGui::PushFont(SDK()->GetImGuiBlackFont());
-        const auto s_ControlsExpanded = ImGui::Begin(ICON_MD_PHOTO_CAMERA " FreecamFollow Controls", &m_ControlsVisible);
-        ImGui::PushFont(SDK()->GetImGuiRegularFont());
-
-        if (s_ControlsExpanded)
-        {
-            ImGui::TextUnformatted("PC Controls");
-
-            ImGui::BeginTable("FreeCamControlsPc", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit);
-
-			for (auto& [s_Key, s_Description]: m_PcControls)
-			{
-				ImGui::TableNextRow();
-				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(s_Key.c_str());
-				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(s_Description.c_str());
-			}
-
-
-            ImGui::EndTable();
-
-			ImGui::TextUnformatted("Controller Controls");
-
-			ImGui::BeginTable("FreeCamControlsController", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit);
-
-			for (auto& [s_Key, s_Description]: m_ControllerControls) {
-				ImGui::TableNextRow();
-				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(s_Key.c_str());
-				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(s_Description.c_str());
-			}
-
-			ImGui::EndTable();
-		}
-
-        ImGui::PopFont();
-        ImGui::End();
-        ImGui::PopFont();
-    }
-}
-
 DEFINE_PLUGIN_DETOUR(FreecamAnchor, bool, ZInputAction_Digital, ZInputAction* th, int a2)
 {
     if (!m_FreeCamActive)
@@ -429,7 +446,7 @@ DEFINE_PLUGIN_DETOUR(FreecamAnchor, bool, ZInputAction_Digital, ZInputAction* th
     return HookResult<bool>(HookAction::Continue());
 }
 
-DEFINE_PLUGIN_DETOUR(FreecamAnchor, void, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters&)
+DEFINE_PLUGIN_DETOUR(FreecamAnchor, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters&)
 {
     if (m_FreeCamActive)
         DisableFreecam();
@@ -437,7 +454,7 @@ DEFINE_PLUGIN_DETOUR(FreecamAnchor, void, OnLoadScene, ZEntitySceneContext* th, 
     m_FreeCamActive = false;
     m_ShouldToggle = false;
 
-    return HookResult<void>(HookAction::Continue());
+    return HookResult<bool>(HookAction::Continue());
 }
 
 DEFINE_PLUGIN_DETOUR(FreecamAnchor, void, OnClearScene, ZEntitySceneContext* th, bool)
