@@ -28,6 +28,7 @@ FreecamAnchor::FreecamAnchor() :
 	m_FreeCamActive(false),
 	m_ShouldToggle(false),
 	m_FreeCamFrozen(false),
+	m_GamePaused(false),
 	m_ControlsVisible(false),
 	m_SettingsVisible(false),
 	m_DebugMenuActive(false),
@@ -38,6 +39,7 @@ FreecamAnchor::FreecamAnchor() :
     m_FreezeFreeCamActionGc("ActivateGameControl0"),
     m_FreezeFreeCamActionKb("KBMInspectNode"),
 	m_AnchoredObjectAction("ToggleFollowObject"),
+	m_TogglePauseGame("TogglePauseGame"),
 	m_IncreaseXOffset("IncreaseXOffset"),
 	m_DecreaseXOffset("DecreaseXOffset"),
 	m_IncreaseYOffset("IncreaseYOffset"),
@@ -53,6 +55,7 @@ FreecamAnchor::FreecamAnchor() :
     m_PcControls = {
         { "K", "Toggle freecam" },
         { "F3", "Lock camera and enable 47 input" },
+		{ "F8", "Pause/resume game"},
         { "Ctrl + W/S", "Change FOV" },
         { "Ctrl + A/D", "Roll camera" },
 	    { "Ctrl + X", "Reset roll" },
@@ -114,6 +117,7 @@ void FreecamAnchor::OnEngineInitialized()
 	const char* binds = "FreeCameraInput={"
 		"ToggleFreeCamera=tap(kb,k);"
 		"ToggleFollowObject=& | hold(kb,lctrl) hold(kb,rctrl) tap(kb,f9);"
+		"TogglePauseGame=tap(kb,f8);"
 		"IncreaseXOffset=& | hold(kb,lshift) hold(kb,rshift) tap(kb,8);"
 		"DecreaseXOffset=& | hold(kb,lctrl) hold(kb,rctrl) tap(kb,8);"
 		"IncreaseYOffset=& | hold(kb,lshift) hold(kb,rshift) tap(kb,9);"
@@ -174,6 +178,11 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
     {
 	    if (Functions::ZInputAction_Digital->Call(&m_FreezeFreeCamActionKb, -1))
             m_FreeCamFrozen = !m_FreeCamFrozen;
+
+    	if (Functions::ZInputAction_Digital->Call(&m_TogglePauseGame, -1)) {
+    		m_GamePaused = !m_GamePaused;
+    		Globals::GameTimeManager->m_bPaused = m_GamePaused;
+    	}
 
 	    const bool s_FreezeFreeCam = Functions::ZInputAction_Digital->Call(&m_FreezeFreeCamActionGc, -1) || m_FreeCamFrozen;
 
@@ -260,7 +269,7 @@ void FreecamAnchor::OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent)
 
 void FreecamAnchor::OnDrawMenu()
 {
-	if (ImGui::Button(ICON_MD_PHOTO_CAMERA " FREECAM ANCHOR")) {
+	if (ImGui::Button(ICON_MD_PHOTO_CAMERA " FREECAM ANCHOR 1")) {
 		m_SettingsVisible = !m_SettingsVisible;
 	}
 }

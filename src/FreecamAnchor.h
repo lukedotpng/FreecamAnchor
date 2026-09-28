@@ -37,6 +37,7 @@ private:
     volatile bool m_FreeCamActive;
     volatile bool m_ShouldToggle;
     volatile bool m_FreeCamFrozen;
+    bool m_GamePaused;
     ZEntityRef m_OriginalCam;
     ZSpatialEntity* m_AnchoredItemSpatial;
     SVector3 m_AnchorOffset;
@@ -44,6 +45,7 @@ private:
     ZInputAction m_FreezeFreeCamActionGc;
     ZInputAction m_FreezeFreeCamActionKb;
     ZInputAction m_AnchoredObjectAction;
+    ZInputAction m_TogglePauseGame;
     ZInputAction m_IncreaseXOffset;
     ZInputAction m_DecreaseXOffset;
     ZInputAction m_IncreaseYOffset;
